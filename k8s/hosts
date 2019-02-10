@@ -1,0 +1,10 @@
+[masters]
+kub-1-master ansible_host=192.168.8.30 ansible_user=ans-admin
+
+[nodes]
+kub-1-node-a ansible_host=192.168.8.31 ansible_user=ans-admin
+kub-1-node-b ansible_host=192.168.8.32 ansible_user=ans-admin
+kub-1-node-c ansible_host=192.168.8.33 ansible_user=ans-admin
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

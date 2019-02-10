@@ -1,0 +1,85 @@
+# This playbook bootstraps all nodes based on the official k8s docs:
+# https://kubernetes.io/docs/setup/independent/install-kubeadm/
+# author: Costeijn Kuhlmann <costeijn@newbyte.io>
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: Remove swapfile from /etc/fstab
+    mount:
+      name: swap
+      fstype: swap
+      state: absent
+
+  - name: Disable swap
+    command: swapoff -a
+    when: ansible_swaptotal_mb > 0
+
+  - name: install packages
+    apt:
+      name: "{{ packages }}"
+      state: installed
+      update_cache: yes
+    vars:
+       packages:
+       - apt-transport-https
+       - ca-certificates
+       - curl
+       - software-properties-common
+
+  - name: add Docker apt-key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+
+  - name: add Docker' APT repository
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+      state: present
+      filename: 'Docker'
+
+  - name: install Docker
+    apt:
+      name: docker.io
+      state: present
+      update_cache: true
+
+  - name: setup Docker deamon
+    shell:
+      cmd: |
+         cat > /etc/docker/daemon.json <<EOF
+          {
+            "exec-opts": ["native.cgroupdriver=systemd"],
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "100m"
+            },
+            "storage-driver": "overlay2"
+          }
+          EOF
+
+  - name: create Docker deamon
+    shell:
+      cmd: mkdir -p /etc/systemd/system/docker.service.d && systemctl daemon-reload && systemctl restart docker
+
+  - name: add k8s apt-key
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      state: present
+
+  - name: add k8s' repo
+    apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: 'kubernetes'
+
+  - name: install kubelet
+    apt:
+      name: kubelet
+      state: present
+      update_cache: true
+
+  - name: install kubeadm
+    apt:
+      name: kubeadm
+      state: present
